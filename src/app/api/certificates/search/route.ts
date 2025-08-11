@@ -8,17 +8,10 @@ export async function GET() {
         createdAt: 'desc'
       }
     })
-
-    return NextResponse.json({
-      certificates
-    })
-
+    return NextResponse.json({ certificates })
   } catch (error) {
     console.error('Error fetching certificates:', error)
-    return NextResponse.json(
-      { message: 'Error interno del servidor' },
-      { status: 500 }
-    )
+    return NextResponse.json({ message: 'Error interno del servidor' }, { status: 500 })
   }
 }
 
@@ -28,25 +21,7 @@ export async function POST(request: NextRequest) {
     const { dni, fullName, course, company, issueDate, expiryDate } = body
 
     if (!dni || !fullName || !course || !company || !issueDate || !expiryDate) {
-      return NextResponse.json(
-        { message: 'Todos los campos son requeridos' },
-        { status: 400 }
-      )
-    }
-
-    // Verificar si ya existe el mismo DNI con el mismo curso
-    const existingCertificate = await prisma.certificate.findFirst({
-      where: { 
-        dni: dni,
-        course: course
-      }
-    })
-
-    if (existingCertificate) {
-      return NextResponse.json(
-        { message: 'Ya existe un certificado con este DNI y curso' },
-        { status: 400 }
-      )
+      return NextResponse.json({ message: 'Todos los campos son requeridos' }, { status: 400 })
     }
 
     const certificate = await prisma.certificate.create({
@@ -68,9 +43,6 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error creating certificate:', error)
-    return NextResponse.json(
-      { message: 'Error interno del servidor' },
-      { status: 500 }
-    )
+    return NextResponse.json({ message: 'Error interno del servidor' }, { status: 500 })
   }
 }
