@@ -20,6 +20,9 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showLogin, setShowLogin] = useState(false)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loginLoading, setLoginLoading] = useState(false)
 
   const searchCertificate = async () => {
     if (!dni.trim()) {
@@ -40,7 +43,7 @@ export default function HomePage() {
       } else {
         setError(data.message || 'Certificados no encontrados')
       }
-    } catch (err) {
+    } catch (error) {
       setError('Error al buscar certificados')
     } finally {
       setLoading(false)
@@ -50,6 +53,35 @@ export default function HomePage() {
   const downloadCertificate = (pdfUrl?: string) => {
     if (pdfUrl) {
       window.open(pdfUrl, '_blank')
+    }
+  }
+
+  const handleLogin = async () => {
+    if (!email || !password) {
+      setError('Email y contraseña son requeridos')
+      return
+    }
+
+    setLoginLoading(true)
+    setError('')
+
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      })
+      
+      if (response.ok) {
+        window.location.href = '/admin'
+      } else {
+        const data = await response.json()
+        setError(data.message || 'Credenciales inválidas')
+      }
+    } catch (error) {
+      setError('Error de conexión')
+    } finally {
+      setLoginLoading(false)
     }
   }
 
@@ -230,6 +262,8 @@ export default function HomePage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
                 <input
                   type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="admin@ourworldhealth.com"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
@@ -238,12 +272,19 @@ export default function HomePage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
                 <input
                   type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
                 />
               </div>
-              <button className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700">
-                Sign In
+              <button 
+                onClick={handleLogin}
+                disabled={loginLoading}
+                className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
+              >
+                {loginLoading ? 'Ingresando...' : 'Sign In'}
               </button>
               <div className="text-center">
                 <a href="#" className="text-blue-600 text-sm hover:underline">
