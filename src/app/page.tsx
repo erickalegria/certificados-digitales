@@ -66,8 +66,8 @@ export default function HomePage() {
                 </svg>
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">OUR WORLD</h1>
-                <p className="text-sm text-gray-600">HEALTH</p>
+                <h1 className="text-xl font-bold text-gray-900">SESMA CONSULTORES</h1>
+                <p className="text-sm text-gray-600">PLATAFORMA DE CONSULTA</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
