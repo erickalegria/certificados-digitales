@@ -16,7 +16,7 @@ interface Certificate {
 
 export default function HomePage() {
   const [dni, setDni] = useState('')
-  const [certificate, setCertificate] = useState<Certificate | null>(null)
+  const [certificates, setCertificates] = useState<Certificate[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showLogin, setShowLogin] = useState(false)
@@ -29,27 +29,27 @@ export default function HomePage() {
 
     setLoading(true)
     setError('')
-    setCertificate(null)
+    setCertificates([])
 
     try {
       const response = await fetch(`/api/certificates/search?dni=${dni}`)
       const data = await response.json()
 
       if (response.ok) {
-        setCertificate(data.certificate)
+        setCertificates(data.certificates || [])
       } else {
-        setError(data.message || 'Certificado no encontrado')
+        setError(data.message || 'Certificados no encontrados')
       }
     } catch (err) {
-      setError('Error al buscar el certificado')
+      setError('Error al buscar certificados')
     } finally {
       setLoading(false)
     }
   }
 
-  const downloadCertificate = () => {
-    if (certificate?.pdfUrl) {
-      window.open(certificate.pdfUrl, '_blank')
+  const downloadCertificate = (pdfUrl?: string) => {
+    if (pdfUrl) {
+      window.open(pdfUrl, '_blank')
     }
   }
 
@@ -153,54 +153,58 @@ export default function HomePage() {
           )}
         </div>
 
-        {/* Certificate Result */}
-        {certificate && (
-          <div className="bg-white rounded-2xl shadow-lg p-8">
-            <div className="bg-green-500 text-white p-4 rounded-lg mb-6 flex items-center space-x-2">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span className="font-medium">Certificado Verificado</span>
-            </div>
+        {/* Certificates Results */}
+        {certificates.length > 0 && (
+          <div className="space-y-6">
+            {certificates.map((certificate) => (
+              <div key={certificate.id} className="bg-white rounded-2xl shadow-lg p-8">
+                <div className="bg-green-500 text-white p-4 rounded-lg mb-6 flex items-center space-x-2">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="font-medium">Certificado Verificado</span>
+                </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="font-medium text-gray-700 mb-1">ID del certificado</h3>
-                <p className="text-gray-900">1</p>
-              </div>
-              <div>
-                <h3 className="font-medium text-gray-700 mb-1">Nombre de Alumno</h3>
-                <p className="text-gray-900">{certificate.fullName}</p>
-              </div>
-              <div>
-                <h3 className="font-medium text-gray-700 mb-1">Fecha Emisión</h3>
-                <p className="text-gray-900">{new Date(certificate.issueDate).toLocaleDateString('es-ES')}</p>
-              </div>
-              <div>
-                <h3 className="font-medium text-gray-700 mb-1">Fecha Expiración</h3>
-                <p className="text-gray-900">{new Date(certificate.expiryDate).toLocaleDateString('es-ES')}</p>
-              </div>
-              <div>
-                <h3 className="font-medium text-gray-700 mb-1">Curso</h3>
-                <p className="text-gray-900">{certificate.course}</p>
-              </div>
-              <div>
-                <h3 className="font-medium text-gray-700 mb-1">Empresa</h3>
-                <p className="text-gray-900">{certificate.company}</p>
-              </div>
-            </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h3 className="font-medium text-gray-700 mb-1">ID del certificado</h3>
+                    <p className="text-gray-900">{certificate.id}</p>
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-gray-700 mb-1">Nombre de Alumno</h3>
+                    <p className="text-gray-900">{certificate.fullName}</p>
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-gray-700 mb-1">Fecha Emisión</h3>
+                    <p className="text-gray-900">{new Date(certificate.issueDate).toLocaleDateString('es-ES')}</p>
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-gray-700 mb-1">Fecha Expiración</h3>
+                    <p className="text-gray-900">{new Date(certificate.expiryDate).toLocaleDateString('es-ES')}</p>
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-gray-700 mb-1">Curso</h3>
+                    <p className="text-gray-900">{certificate.course}</p>
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-gray-700 mb-1">Empresa</h3>
+                    <p className="text-gray-900">{certificate.company}</p>
+                  </div>
+                </div>
 
-            <div className="mt-8">
-              <button 
-                onClick={downloadCertificate}
-                className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 flex items-center justify-center space-x-2"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <span>Descargar Certificado</span>
-              </button>
-            </div>
+                <div className="mt-8">
+                  <button 
+                    onClick={() => downloadCertificate(certificate.pdfUrl)}
+                    className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 flex items-center justify-center space-x-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span>Descargar Certificado</span>
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </main>

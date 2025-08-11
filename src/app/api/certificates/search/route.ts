@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+interface Certificate {
+  id: string
+  dni: string
+  fullName: string
+  course: string
+  company: string
+  issueDate: Date
+  expiryDate: Date
+  pdfUrl?: string
+  isActive: boolean
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
@@ -13,35 +25,38 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const certificate = await prisma.certificate.findUnique({
+    const certificates = await prisma.certificate.findMany({
       where: {
         dni: dni,
         isActive: true
       }
     })
 
-    if (!certificate) {
+    if (certificates.length === 0) {
       return NextResponse.json(
-        { message: 'Certificado no encontrado' },
+        { message: 'Certificados no encontrados' },
         { status: 404 }
       )
     }
 
+    // Filtrar certificados no expirados
     const now = new Date()
-    if (certificate.expiryDate < now) {
+    const validCertificates = certificates.filter((cert: Certificate) => cert.expiryDate >= now)
+
+    if (validCertificates.length === 0) {
       return NextResponse.json(
-        { message: 'Certificado expirado' },
+        { message: 'Todos los certificados están expirados' },
         { status: 400 }
       )
     }
 
     return NextResponse.json({
-      message: 'Certificado encontrado',
-      certificate
+      message: 'Certificados encontrados',
+      certificates: validCertificates
     })
 
   } catch (error) {
-    console.error('Error searching certificate:', error)
+    console.error('Error searching certificates:', error)
     return NextResponse.json(
       { message: 'Error interno del servidor' },
       { status: 500 }
