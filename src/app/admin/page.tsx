@@ -29,6 +29,7 @@ export default function AdminPanel() {
   const [certificates, setCertificates] = useState<Certificate[]>([])
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [editingCertificate, setEditingCertificate] = useState<Certificate | null>(null)
   const [formData, setFormData] = useState<CertificateFormData>({
     dni: '',
     fullName: '',
@@ -67,8 +68,14 @@ export default function AdminPanel() {
     setLoading(true)
 
     try {
-      const response = await fetch('/api/admin/certificates', {
-        method: 'POST',
+      const url = editingCertificate 
+        ? `/api/admin/certificates/${editingCertificate.id}`
+        : '/api/admin/certificates'
+      
+      const method = editingCertificate ? 'PUT' : 'POST'
+
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
@@ -77,6 +84,7 @@ export default function AdminPanel() {
 
       if (response.ok) {
         setShowForm(false)
+        setEditingCertificate(null)
         setFormData({
           dni: '',
           fullName: '',
@@ -88,7 +96,7 @@ export default function AdminPanel() {
         fetchCertificates()
       }
     } catch (error) {
-      console.error('Error creating certificate:', error)
+      console.error('Error saving certificate:', error)
     } finally {
       setLoading(false)
     }
@@ -116,6 +124,32 @@ export default function AdminPanel() {
     } catch (error) {
       console.error('Error logging out:', error)
     }
+  }
+
+  const handleEdit = (certificate: Certificate) => {
+    setEditingCertificate(certificate)
+    setFormData({
+      dni: certificate.dni,
+      fullName: certificate.fullName,
+      course: certificate.course,
+      company: certificate.company,
+      issueDate: new Date(certificate.issueDate).toISOString().split('T')[0],
+      expiryDate: new Date(certificate.expiryDate).toISOString().split('T')[0]
+    })
+    setShowForm(true)
+  }
+
+  const handleNew = () => {
+    setEditingCertificate(null)
+    setFormData({
+      dni: '',
+      fullName: '',
+      course: '',
+      company: '',
+      issueDate: '',
+      expiryDate: ''
+    })
+    setShowForm(true)
   }
 
   return (
@@ -170,7 +204,7 @@ export default function AdminPanel() {
               <p className="text-gray-600">Haga clic en &apos;Subir Nuevo Certificado&apos; para agregar un certificado al sistema</p>
             </div>
             <button
-              onClick={() => setShowForm(true)}
+              onClick={handleNew}
               className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 flex items-center space-x-2"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -186,7 +220,9 @@ export default function AdminPanel() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-2xl p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold text-gray-900">Subir Nuevo Certificado</h3>
+                <h3 className="text-xl font-bold text-gray-900">
+                  {editingCertificate ? 'Editar Certificado' : 'Subir Nuevo Certificado'}
+                </h3>
                 <button
                   onClick={() => setShowForm(false)}
                   className="text-gray-400 hover:text-gray-600"
@@ -287,7 +323,7 @@ export default function AdminPanel() {
                   disabled={loading}
                   className="w-full bg-green-600 text-white py-3 rounded-lg font-medium hover:bg-green-700 disabled:opacity-50"
                 >
-                  {loading ? 'Subiendo...' : 'Subir Certificado'}
+                  {loading ? (editingCertificate ? 'Actualizando...' : 'Subiendo...') : (editingCertificate ? 'Actualizar Certificado' : 'Subir Certificado')}
                 </button>
               </form>
             </div>
@@ -353,6 +389,15 @@ export default function AdminPanel() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center space-x-2">
+                        <button 
+                          onClick={() => handleEdit(certificate)}
+                          className="text-blue-600 hover:text-blue-900"
+                          title="Editar certificado"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
                         <button className="text-blue-600 hover:text-blue-900">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -361,6 +406,7 @@ export default function AdminPanel() {
                         <button 
                           onClick={() => deleteCertificate(certificate.id)}
                           className="text-red-600 hover:text-red-900"
+                          title="Eliminar certificado"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
