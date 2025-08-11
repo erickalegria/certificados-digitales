@@ -109,6 +109,15 @@ export default function AdminPanel() {
     }
   }
 
+  const handleLogout = async () => {
+    try {
+      document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
+      window.location.href = '/'
+    } catch (error) {
+      console.error('Error logging out:', error)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -122,17 +131,30 @@ export default function AdminPanel() {
                 </svg>
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">OUR WORLD</h1>
-                <p className="text-sm text-gray-600">HEALTH</p>
+                <h1 className="text-xl font-bold text-gray-900">Panel de Administración</h1>
+                <p className="text-sm text-gray-600">Gestiona certificados y usuarios del sistema</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <button className="text-gray-600 hover:text-gray-900">
-                Consultar
+              <a 
+                href="/" 
+                target="_blank"
+                className="text-gray-600 hover:text-gray-900 flex items-center space-x-1"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+                <span>Consultar</span>
+              </a>
+              <button 
+                onClick={handleLogout}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center space-x-1"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                <span>Cerrar Sesión</span>
               </button>
-              <div className="bg-blue-600 text-white px-4 py-2 rounded-lg">
-                Administración
-              </div>
             </div>
           </div>
         </div>
@@ -144,8 +166,8 @@ export default function AdminPanel() {
         <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
           <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">Panel de Administración</h2>
-              <p className="text-gray-600">Gestiona certificados y usuarios del sistema</p>
+              <h2 className="text-2xl font-bold text-gray-900">Carga de Certificados Digitales</h2>
+              <p className="text-gray-600">Haga clic en "Subir Nuevo Certificado" para agregar un certificado al sistema</p>
             </div>
             <button
               onClick={() => setShowForm(true)}
