@@ -37,8 +37,8 @@ export async function POST(request: NextRequest) {
     // Verificar si ya existe el mismo DNI con el mismo curso
     const existingCertificate = await prisma.certificate.findFirst({
       where: { 
-        dni,
-        course
+        dni: dni,
+        course: course
       }
     })
 
