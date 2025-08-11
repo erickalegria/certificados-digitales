@@ -1,62 +1,73 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
-interface Certificate {
-  id: string
-  dni: string
-  fullName: string
-  course: string
-  company: string
-  issueDate: Date
-  expiryDate: Date
-  pdfUrl?: string
-  isActive: boolean
+export async function GET() {
+  try {
+    const certificates = await prisma.certificate.findMany({
+      orderBy: {
+        createdAt: 'desc'
+      }
+    })
+
+    return NextResponse.json({
+      certificates
+    })
+
+  } catch (error) {
+    console.error('Error fetching certificates:', error)
+    return NextResponse.json(
+      { message: 'Error interno del servidor' },
+      { status: 500 }
+    )
+  }
 }
 
-export async function GET(request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const dni = searchParams.get('dni')
+    const body = await request.json()
+    const { dni, fullName, course, company, issueDate, expiryDate } = body
 
-    if (!dni) {
+    if (!dni || !fullName || !course || !company || !issueDate || !expiryDate) {
       return NextResponse.json(
-        { message: 'DNI es requerido' },
+        { message: 'Todos los campos son requeridos' },
         { status: 400 }
       )
     }
 
-    const certificates = await prisma.certificate.findMany({
-      where: {
-        dni: dni,
+    // Verificar si ya existe el mismo DNI con el mismo curso
+    const existingCertificate = await prisma.certificate.findFirst({
+      where: { 
+        dni,
+        course
+      }
+    })
+
+    if (existingCertificate) {
+      return NextResponse.json(
+        { message: 'Ya existe un certificado con este DNI y curso' },
+        { status: 400 }
+      )
+    }
+
+    const certificate = await prisma.certificate.create({
+      data: {
+        dni,
+        fullName,
+        course,
+        company,
+        issueDate: new Date(issueDate),
+        expiryDate: new Date(expiryDate),
         isActive: true
       }
     })
 
-    if (certificates.length === 0) {
-      return NextResponse.json(
-        { message: 'Certificados no encontrados' },
-        { status: 404 }
-      )
-    }
-
-    // Filtrar certificados no expirados
-    const now = new Date()
-    const validCertificates = certificates.filter((cert: Certificate) => cert.expiryDate >= now)
-
-    if (validCertificates.length === 0) {
-      return NextResponse.json(
-        { message: 'Todos los certificados están expirados' },
-        { status: 400 }
-      )
-    }
-
     return NextResponse.json({
-      message: 'Certificados encontrados',
-      certificates: validCertificates
-    })
+      message: 'Certificado creado exitosamente',
+      certificate
+    }, { status: 201 })
 
   } catch (error) {
-    console.error('Error searching certificates:', error)
+    console.error('Error creating certificate:', error)
     return NextResponse.json(
       { message: 'Error interno del servidor' },
       { status: 500 }
