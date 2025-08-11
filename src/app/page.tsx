@@ -47,6 +47,12 @@ export default function HomePage() {
     }
   }
 
+  const downloadCertificate = () => {
+    if (certificate?.pdfUrl) {
+      window.open(certificate.pdfUrl, '_blank')
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
@@ -191,6 +197,10 @@ export default function HomePage() {
                 </svg>
                 <span>Descargar Certificado</span>
               </button>
+              <button 
+                onClick={downloadCertificate}
+                className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 flex items-center justify-center space-x-2"
+              ></button>
             </div>
           </div>
         )}
