@@ -167,7 +167,7 @@ export default function AdminPanel() {
           <div className="flex justify-between items-center">
             <div>
               <h2 className="text-2xl font-bold text-gray-900">Carga de Certificados Digitales</h2>
-              <p className="text-gray-600">Haga clic en "Subir Nuevo Certificado" para agregar un certificado al sistema</p>
+              <p className="text-gray-600">Haga clic en &apos;Subir Nuevo Certificado&apos; para agregar un certificado al sistema</p>
             </div>
             <button
               onClick={() => setShowForm(true)}
