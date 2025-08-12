@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { writeFile, mkdir } from 'fs/promises'
-import path from 'path'
+import { join } from 'path'
+import { existsSync } from 'fs'
 
 export async function GET() {
   try {
@@ -15,8 +16,8 @@ export async function GET() {
       certificates
     })
 
-  } catch (error) {
-    console.error('Error fetching certificates:', error)
+  } catch (_error) {
+    console.error('Error fetching certificates:', _error)
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }
@@ -37,38 +38,34 @@ export async function POST(request: NextRequest) {
     const expiryDate = formData.get('expiryDate') as string
     const pdfFile = formData.get('pdfFile') as File
 
-    // Validaciones
+    // Validaciones básicas
     if (!dni || !fullName || !course || !company || !issueDate || !expiryDate) {
       return NextResponse.json(
-        { message: 'Todos los campos son requeridos' },
+        { error: 'Todos los campos son requeridos' },
         { status: 400 }
       )
     }
 
-    // Verificar certificado duplicado (usando el constraint único del schema)
-    try {
-      const existingCertificate = await prisma.certificate.findFirst({
-        where: {
-          dni,
-          course
-        }
-      })
-
-      if (existingCertificate) {
-        return NextResponse.json(
-          { message: 'Ya existe un certificado para este DNI y curso' },
-          { status: 400 }
-        )
+    // Verificar certificado duplicado
+    const existingCertificate = await prisma.certificate.findFirst({
+      where: {
+        dni,
+        course
       }
-    } catch (error) {
-      // Manejo del constraint único a nivel de DB
+    })
+
+    if (existingCertificate) {
+      return NextResponse.json(
+        { error: 'Ya existe un certificado para este DNI y curso' },
+        { status: 400 }
+      )
     }
 
     let pdfUrl = null
 
-    // Procesar archivo PDF
+    // Procesar archivo PDF si existe
     if (pdfFile && pdfFile.size > 0) {
-      // Validar archivo
+      // Validar tipo de archivo
       if (pdfFile.type !== 'application/pdf') {
         return NextResponse.json(
           { error: 'Solo se permiten archivos PDF' },
@@ -76,6 +73,7 @@ export async function POST(request: NextRequest) {
         )
       }
 
+      // Validar tamaño (máximo 10MB)
       if (pdfFile.size > 10 * 1024 * 1024) {
         return NextResponse.json(
           { error: 'El archivo no puede ser mayor a 10MB' },
@@ -83,23 +81,28 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      // Crear directorio
-      const uploadDir = path.join(process.cwd(), 'public', 'certificates')
-      await mkdir(uploadDir, { recursive: true })
+      // Crear directorio si no existe
+      const certificatesDir = join(process.cwd(), 'certificates')
+      if (!existsSync(certificatesDir)) {
+        await mkdir(certificatesDir, { recursive: true })
+      }
+
+      // Generar nombre único para el archivo
+      const timestamp = Date.now()
+      const sanitizedCourse = course.replace(/[^a-zA-Z0-9]/g, '_')
+      const filename = `${dni}_${sanitizedCourse}_${timestamp}.pdf`
+      const filePath = join(certificatesDir, filename)
 
       // Guardar archivo
-      const timestamp = Date.now()
-      const sanitizedFileName = `${dni}-${course.replace(/[^a-zA-Z0-9]/g, '_')}-${timestamp}.pdf`
-      const filePath = path.join(uploadDir, sanitizedFileName)
-
       const bytes = await pdfFile.arrayBuffer()
       const buffer = Buffer.from(bytes)
       await writeFile(filePath, buffer)
 
-      pdfUrl = `/api/certificates/download/${sanitizedFileName}`
+      // Generar URL para descarga
+      pdfUrl = `/api/certificates/download/${filename}`
     }
 
-    // Crear certificado
+    // Crear certificado en la base de datos
     const certificate = await prisma.certificate.create({
       data: {
         dni,
@@ -118,8 +121,156 @@ export async function POST(request: NextRequest) {
       certificate
     }, { status: 201 })
 
-  } catch (error) {
-    console.error('Error creating certificate:', error)
+  } catch (_error) {
+    console.error('Error creating certificate:', _error)
+    return NextResponse.json(
+      { error: 'Error interno del servidor' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const url = new URL(request.url)
+    const id = url.pathname.split('/').pop()
+    
+    if (!id) {
+      return NextResponse.json(
+        { error: 'ID de certificado requerido' },
+        { status: 400 }
+      )
+    }
+
+    const formData = await request.formData()
+    
+    const dni = formData.get('dni') as string
+    const fullName = formData.get('fullName') as string
+    const course = formData.get('course') as string
+    const company = formData.get('company') as string
+    const issueDate = formData.get('issueDate') as string
+    const expiryDate = formData.get('expiryDate') as string
+    const pdfFile = formData.get('pdfFile') as File
+
+    // Validaciones
+    if (!dni || !fullName || !course || !company || !issueDate || !expiryDate) {
+      return NextResponse.json(
+        { error: 'Todos los campos son requeridos' },
+        { status: 400 }
+      )
+    }
+
+    // Buscar certificado existente
+    const existingCertificate = await prisma.certificate.findUnique({
+      where: { id }
+    })
+
+    if (!existingCertificate) {
+      return NextResponse.json(
+        { error: 'Certificado no encontrado' },
+        { status: 404 }
+      )
+    }
+
+    let pdfUrl = existingCertificate.pdfUrl
+
+    // Procesar nuevo archivo PDF si se proporciona
+    if (pdfFile && pdfFile.size > 0) {
+      if (pdfFile.type !== 'application/pdf') {
+        return NextResponse.json(
+          { error: 'Solo se permiten archivos PDF' },
+          { status: 400 }
+        )
+      }
+
+      if (pdfFile.size > 10 * 1024 * 1024) {
+        return NextResponse.json(
+          { error: 'El archivo no puede ser mayor a 10MB' },
+          { status: 400 }
+        )
+      }
+
+      const certificatesDir = join(process.cwd(), 'certificates')
+      if (!existsSync(certificatesDir)) {
+        await mkdir(certificatesDir, { recursive: true })
+      }
+
+      const timestamp = Date.now()
+      const sanitizedCourse = course.replace(/[^a-zA-Z0-9]/g, '_')
+      const filename = `${dni}_${sanitizedCourse}_${timestamp}.pdf`
+      const filePath = join(certificatesDir, filename)
+
+      const bytes = await pdfFile.arrayBuffer()
+      const buffer = Buffer.from(bytes)
+      await writeFile(filePath, buffer)
+
+      pdfUrl = `/api/certificates/download/${filename}`
+    }
+
+    // Actualizar certificado
+    const updatedCertificate = await prisma.certificate.update({
+      where: { id },
+      data: {
+        dni,
+        fullName,
+        course,
+        company,
+        issueDate: new Date(issueDate),
+        expiryDate: new Date(expiryDate),
+        pdfUrl
+      }
+    })
+
+    return NextResponse.json({
+      message: 'Certificado actualizado exitosamente',
+      certificate: updatedCertificate
+    })
+
+  } catch (_error) {
+    console.error('Error updating certificate:', _error)
+    return NextResponse.json(
+      { error: 'Error interno del servidor' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const url = new URL(request.url)
+    const id = url.pathname.split('/').pop()
+    
+    if (!id) {
+      return NextResponse.json(
+        { error: 'ID de certificado requerido' },
+        { status: 400 }
+      )
+    }
+
+    // Verificar que el certificado existe
+    const certificate = await prisma.certificate.findUnique({
+      where: { id }
+    })
+
+    if (!certificate) {
+      return NextResponse.json(
+        { error: 'Certificado no encontrado' },
+        { status: 404 }
+      )
+    }
+
+    // Eliminar certificado (soft delete)
+    await prisma.certificate.update({
+      where: { id },
+      data: { isActive: false }
+    })
+
+    return NextResponse.json({
+      message: 'Certificado eliminado exitosamente'
+    })
+
+  } catch (_error) {
+    console.error('Error deleting certificate:', _error)
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

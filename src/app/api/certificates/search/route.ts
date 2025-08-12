@@ -32,7 +32,17 @@ export async function GET(request: NextRequest) {
     })
 
     // Mapear a la estructura esperada por el frontend
-    const certificatesWithUrl = certificates.map((cert: any) => ({
+    const certificatesWithUrl = certificates.map((cert: {
+      id: string;
+      dni: string;
+      fullName: string;
+      course: string;
+      company: string;
+      issueDate: Date;
+      expiryDate: Date;
+      pdfUrl: string | null;
+      isActive: boolean;
+    }) => ({
       id: cert.id,
       dni: cert.dni,
       fullName: cert.fullName,
