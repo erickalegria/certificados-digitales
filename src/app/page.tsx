@@ -44,7 +44,7 @@ export default function HomePage() {
       } else {
         setError(data.message || 'Certificados no encontrados')
       }
-    } catch (error) {
+    } catch (_error) {
       setError('Error al buscar certificados')
     } finally {
       setLoading(false)
@@ -79,7 +79,7 @@ export default function HomePage() {
         const data = await response.json()
         setError(data.message || 'Credenciales inválidas')
       }
-    } catch (error) {
+    } catch (_error) {
       setError('Error de conexión')
     } finally {
       setLoginLoading(false)

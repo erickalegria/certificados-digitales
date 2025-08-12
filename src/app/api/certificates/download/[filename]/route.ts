@@ -1,45 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { readFile } from 'fs/promises'
-import path from 'path'
+import { join } from 'path'
 
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ filename: string }> }
+  { params }: { params: { filename: string } }
 ) {
   try {
-    const { filename } = await context.params
+    const { filename } = params
     
-    // Validar filename para seguridad
-    if (!filename || filename.includes('..') || !filename.endsWith('.pdf')) {
+    // Validar que el archivo tenga extensión .pdf
+    if (!filename.endsWith('.pdf')) {
       return NextResponse.json(
-        { message: 'Archivo no válido' },
+        { error: 'Archivo no válido' },
         { status: 400 }
       )
     }
 
-    const filePath = path.join(process.cwd(), 'public', 'certificates', filename)
+    // Construir la ruta del archivo
+    const filePath = join(process.cwd(), 'certificates', filename)
     
     try {
       const fileBuffer = await readFile(filePath)
       
-      return new NextResponse(fileBuffer, {
+      // FIX: Convertir Buffer a Uint8Array para Next.js 15
+      return new NextResponse(new Uint8Array(fileBuffer), {
         headers: {
           'Content-Type': 'application/pdf',
           'Content-Disposition': `attachment; filename="${filename}"`,
-          'Cache-Control': 'no-cache'
-        }
+          'Content-Length': fileBuffer.length.toString(),
+        },
       })
-    } catch (error) {
+    } catch (_fileError) {
       return NextResponse.json(
-        { message: 'Archivo no encontrado' },
+        { error: 'Archivo no encontrado' },
         { status: 404 }
       )
     }
-
-  } catch (error) {
-    console.error('Error downloading file:', error)
+  } catch (_error) {
+    console.error('Error descargando certificado:', _error)
     return NextResponse.json(
-      { message: 'Error interno del servidor' },
+      { error: 'Error interno del servidor' },
       { status: 500 }
     )
   }
