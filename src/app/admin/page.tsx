@@ -30,6 +30,7 @@ export default function AdminPanel() {
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(false)
   const [editingCertificate, setEditingCertificate] = useState<Certificate | null>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [formData, setFormData] = useState<CertificateFormData>({
     dni: '',
     fullName: '',
@@ -63,11 +64,42 @@ export default function AdminPanel() {
     }))
   }
 
+  // NUEVO: Manejo de archivos
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      // Validar que sea PDF
+      if (file.type !== 'application/pdf') {
+        alert('Por favor seleccione un archivo PDF')
+        return
+      }
+      // Validar tamaño (máximo 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        alert('El archivo no puede ser mayor a 10MB')
+        return
+      }
+      setSelectedFile(file)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
     try {
+      // Crear FormData para enviar archivo
+      const formDataToSend = new FormData()
+      
+      // Agregar datos del formulario
+      Object.entries(formData).forEach(([key, value]) => {
+        formDataToSend.append(key, value)
+      })
+
+      // Agregar archivo si existe
+      if (selectedFile) {
+        formDataToSend.append('pdfFile', selectedFile)
+      }
+
       const url = editingCertificate 
         ? `/api/admin/certificates/${editingCertificate.id}`
         : '/api/admin/certificates'
@@ -76,15 +108,15 @@ export default function AdminPanel() {
 
       const response = await fetch(url, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
+        body: formDataToSend, // No Content-Type header para FormData
       })
+
+      const result = await response.json()
 
       if (response.ok) {
         setShowForm(false)
         setEditingCertificate(null)
+        setSelectedFile(null)
         setFormData({
           dni: '',
           fullName: '',
@@ -94,9 +126,13 @@ export default function AdminPanel() {
           expiryDate: ''
         })
         fetchCertificates()
+        alert(editingCertificate ? 'Certificado actualizado exitosamente' : 'Certificado creado exitosamente')
+      } else {
+        alert(`Error: ${result.message || 'No se pudo procesar la solicitud'}`)
       }
     } catch (error) {
       console.error('Error saving certificate:', error)
+      alert('Error al guardar el certificado')
     } finally {
       setLoading(false)
     }
@@ -110,9 +146,14 @@ export default function AdminPanel() {
         })
         if (response.ok) {
           fetchCertificates()
+          alert('Certificado eliminado exitosamente')
+        } else {
+          const result = await response.json()
+          alert(`Error: ${result.error || 'No se pudo eliminar el certificado'}`)
         }
       } catch (error) {
         console.error('Error deleting certificate:', error)
+        alert('Error al eliminar el certificado')
       }
     }
   }
@@ -136,11 +177,13 @@ export default function AdminPanel() {
       issueDate: new Date(certificate.issueDate).toISOString().split('T')[0],
       expiryDate: new Date(certificate.expiryDate).toISOString().split('T')[0]
     })
+    setSelectedFile(null) // Reset file selection
     setShowForm(true)
   }
 
   const handleNew = () => {
     setEditingCertificate(null)
+    setSelectedFile(null)
     setFormData({
       dni: '',
       fullName: '',
@@ -150,6 +193,16 @@ export default function AdminPanel() {
       expiryDate: ''
     })
     setShowForm(true)
+  }
+
+  const downloadCertificate = (certificate: Certificate) => {
+    if (!certificate.pdfUrl) {
+      alert('No hay archivo PDF disponible para este certificado')
+      return
+    }
+    
+    // Para URLs de API de descarga directa
+    window.open(certificate.pdfUrl, '_blank')
   }
 
   return (
@@ -308,14 +361,19 @@ export default function AdminPanel() {
                   </div>
                 </div>
 
+                {/* ARCHIVO PDF CORREGIDO */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Archivo PDF</label>
                   <input
                     type="file"
                     accept=".pdf"
+                    onChange={handleFileChange}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    required={!editingCertificate}
                   />
-                  <p className="text-sm text-gray-500 mt-1">Ningún archivo seleccionado</p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {selectedFile ? selectedFile.name : 'Ningún archivo seleccionado'}
+                  </p>
                 </div>
 
                 <button
@@ -398,7 +456,11 @@ export default function AdminPanel() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                           </svg>
                         </button>
-                        <button className="text-blue-600 hover:text-blue-900">
+                        <button 
+                          onClick={() => downloadCertificate(certificate)}
+                          className="text-blue-600 hover:text-blue-900"
+                          title="Descargar certificado"
+                        >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                           </svg>
