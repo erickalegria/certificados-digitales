@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
 
     if (!dni) {
       return NextResponse.json(
-        { message: 'DNI es requerido' },
+        { error: 'DNI es requerido' },
         { status: 400 }
       )
     }
@@ -17,25 +17,42 @@ export async function GET(request: NextRequest) {
       where: {
         dni: dni,
         isActive: true
+      },
+      select: {
+        id: true,
+        dni: true,
+        fullName: true,
+        course: true,
+        company: true,
+        issueDate: true,
+        expiryDate: true,
+        pdfUrl: true,
+        isActive: true
       }
     })
 
-    if (certificates.length === 0) {
-      return NextResponse.json(
-        { message: 'Certificados no encontrados' },
-        { status: 404 }
-      )
-    }
+    // Mapear a la estructura esperada por el frontend
+    const certificatesWithUrl = certificates.map((cert: any) => ({
+      id: cert.id,
+      dni: cert.dni,
+      fullName: cert.fullName,
+      course: cert.course,
+      company: cert.company,
+      issueDate: cert.issueDate,
+      expiryDate: cert.expiryDate,
+      isActive: cert.isActive,
+      pdfUrl: cert.pdfUrl || null
+    }))
 
     return NextResponse.json({
-      message: 'Certificados encontrados',
-      certificates: certificates
+      certificates: certificatesWithUrl,
+      message: certificates.length > 0 ? 'Certificados encontrados' : 'No se encontraron certificados'
     })
 
-  } catch (error) {
-    console.error('Error searching certificates:', error)
+  } catch (_error) {
+    console.error('Error searching certificates:', _error)
     return NextResponse.json(
-      { message: 'Error interno del servidor' },
+      { error: 'Error interno del servidor' },
       { status: 500 }
     )
   }

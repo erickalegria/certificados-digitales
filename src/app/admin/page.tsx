@@ -51,8 +51,8 @@ export default function AdminPanel() {
       if (response.ok) {
         setCertificates(data.certificates)
       }
-    } catch (error) {
-      console.error('Error fetching certificates:', error)
+    } catch (_error) {
+      console.error('Error fetching certificates:', _error)
     }
   }
 
@@ -130,8 +130,8 @@ export default function AdminPanel() {
       } else {
         alert(`Error: ${result.message || 'No se pudo procesar la solicitud'}`)
       }
-    } catch (error) {
-      console.error('Error saving certificate:', error)
+    } catch (_error) {
+      console.error('Error saving certificate:', _error)
       alert('Error al guardar el certificado')
     } finally {
       setLoading(false)
@@ -151,8 +151,8 @@ export default function AdminPanel() {
           const result = await response.json()
           alert(`Error: ${result.error || 'No se pudo eliminar el certificado'}`)
         }
-      } catch (error) {
-        console.error('Error deleting certificate:', error)
+      } catch (_error) {
+        console.error('Error deleting certificate:', _error)
         alert('Error al eliminar el certificado')
       }
     }
@@ -162,8 +162,8 @@ export default function AdminPanel() {
     try {
       document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
       window.location.href = '/'
-    } catch (error) {
-      console.error('Error logging out:', error)
+    } catch (_error) {
+      console.error('Error logging out:', _error)
     }
   }
 
