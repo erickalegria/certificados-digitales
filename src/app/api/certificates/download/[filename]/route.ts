@@ -4,10 +4,10 @@ import { join } from 'path'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { filename: string } }
+  context: { params: Promise<{ filename: string }> }
 ) {
   try {
-    const { filename } = params
+    const { filename } = await context.params
     
     // Validar que el archivo tenga extensión .pdf
     if (!filename.endsWith('.pdf')) {
@@ -31,14 +31,13 @@ export async function GET(
           'Content-Length': fileBuffer.length.toString(),
         },
       })
-    } catch (_fileError) {
+    } catch {
       return NextResponse.json(
         { error: 'Archivo no encontrado' },
         { status: 404 }
       )
     }
-  } catch (_error) {
-    console.error('Error descargando certificado:', _error)
+  } catch {
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }
