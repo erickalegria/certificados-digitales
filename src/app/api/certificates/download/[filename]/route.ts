@@ -18,7 +18,7 @@ export async function GET(
     }
 
     // Construir la ruta del archivo
-    const filePath = join(process.cwd(), 'certificates', filename)
+    const filePath = join('/tmp', 'certificates', filename)
     
     try {
       const fileBuffer = await readFile(filePath)

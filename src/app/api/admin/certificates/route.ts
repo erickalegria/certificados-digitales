@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Crear directorio si no existe
-      const certificatesDir = join(process.cwd(), 'certificates')
+      const certificatesDir = join('/tmp', 'certificates')
       if (!existsSync(certificatesDir)) {
         await mkdir(certificatesDir, { recursive: true })
       }
