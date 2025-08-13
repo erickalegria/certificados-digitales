@@ -69,12 +69,12 @@ export default function AdminPanel() {
     setCurrentPage(1)
 
     const sorted = [...filteredCertificates].sort((a, b) => {
-      let aVal: any = a[field]
-      let bVal: any = b[field]
+      let aVal: string | number = a[field] as string | number
+      let bVal: string | number = b[field] as string | number
 
       if (field === 'issueDate' || field === 'expiryDate' || field === 'createdAt') {
-        aVal = new Date(aVal as string).getTime()
-        bVal = new Date(bVal as string).getTime()
+        aVal = new Date(String(aVal)).getTime()
+        bVal = new Date(String(bVal)).getTime()
       } else {
         aVal = String(aVal).toLowerCase()
         bVal = String(bVal).toLowerCase()
