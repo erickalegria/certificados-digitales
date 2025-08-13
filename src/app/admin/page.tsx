@@ -27,10 +27,15 @@ interface CertificateFormData {
 
 export default function AdminPanel() {
   const [certificates, setCertificates] = useState<Certificate[]>([])
+  const [filteredCertificates, setFilteredCertificates] = useState<Certificate[]>([])
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(false)
   const [editingCertificate, setEditingCertificate] = useState<Certificate | null>(null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
+  const [sortField, setSortField] = useState<keyof Certificate>('createdAt')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
   const [formData, setFormData] = useState<CertificateFormData>({
     dni: '',
     fullName: '',
@@ -50,11 +55,65 @@ export default function AdminPanel() {
       const data = await response.json()
       if (response.ok) {
         setCertificates(data.certificates)
+        setFilteredCertificates(data.certificates)
       }
     } catch (_error) {
       console.error('Error fetching certificates:', _error)
     }
   }
+
+  const sortCertificates = (field: keyof Certificate) => {
+    const direction = sortField === field && sortDirection === 'asc' ? 'desc' : 'asc'
+    setSortField(field)
+    setSortDirection(direction)
+    setCurrentPage(1)
+
+    const sorted = [...filteredCertificates].sort((a, b) => {
+      let aVal: any = a[field]
+      let bVal: any = b[field]
+
+      if (field === 'issueDate' || field === 'expiryDate' || field === 'createdAt') {
+        aVal = new Date(aVal as string).getTime()
+        bVal = new Date(bVal as string).getTime()
+      } else {
+        aVal = String(aVal).toLowerCase()
+        bVal = String(bVal).toLowerCase()
+      }
+
+      if (direction === 'asc') {
+        return aVal < bVal ? -1 : aVal > bVal ? 1 : 0
+      } else {
+        return aVal > bVal ? -1 : aVal < bVal ? 1 : 0
+      }
+    })
+
+    setFilteredCertificates(sorted)
+  }
+
+  const getSortIcon = (field: keyof Certificate) => {
+    if (sortField !== field) {
+      return (
+        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+        </svg>
+      )
+    }
+    return sortDirection === 'asc' ? (
+      <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+      </svg>
+    ) : (
+      <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+      </svg>
+    )
+  }
+
+  // Paginación
+  const indexOfLastItem = currentPage * itemsPerPage
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage
+  const currentItems = filteredCertificates.slice(indexOfFirstItem, indexOfLastItem)
+  const totalPages = Math.ceil(filteredCertificates.length / itemsPerPage)
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -249,9 +308,9 @@ export default function AdminPanel() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Panel Header */}
+        {/* Panel Header con controles de paginación */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center mb-4">
             <div>
               <h2 className="text-2xl font-bold text-gray-900">Carga de Certificados Digitales</h2>
               <p className="text-gray-600">Haga clic en &apos;Subir Nuevo Certificado&apos; para agregar un certificado al sistema</p>
@@ -265,6 +324,32 @@ export default function AdminPanel() {
               </svg>
               <span>Subir Nuevo Certificado</span>
             </button>
+          </div>
+          
+          {/* Controles de paginación */}
+          <div className="flex justify-between items-center">
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-700">Mostrar:</span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value))
+                  setCurrentPage(1)
+                }}
+                className="border border-gray-300 rounded px-3 py-1 text-sm"
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={75}>75</option>
+                <option value={100}>100</option>
+              </select>
+              <span className="text-sm text-gray-700">registros</span>
+            </div>
+            
+            <div className="text-sm text-gray-700">
+              Mostrando {indexOfFirstItem + 1} a {Math.min(indexOfLastItem, filteredCertificates.length)} de {filteredCertificates.length} registros
+            </div>
           </div>
         </div>
 
@@ -404,19 +489,49 @@ export default function AdminPanel() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Alumno
+                    <button
+                      onClick={() => sortCertificates('fullName')}
+                      className="flex items-center space-x-1 hover:text-gray-700"
+                    >
+                      <span>Alumno</span>
+                      {getSortIcon('fullName')}
+                    </button>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Curso
+                    <button
+                      onClick={() => sortCertificates('course')}
+                      className="flex items-center space-x-1 hover:text-gray-700"
+                    >
+                      <span>Curso</span>
+                      {getSortIcon('course')}
+                    </button>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    DNI
+                    <button
+                      onClick={() => sortCertificates('dni')}
+                      className="flex items-center space-x-1 hover:text-gray-700"
+                    >
+                      <span>DNI</span>
+                      {getSortIcon('dni')}
+                    </button>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Empresa
+                    <button
+                      onClick={() => sortCertificates('company')}
+                      className="flex items-center space-x-1 hover:text-gray-700"
+                    >
+                      <span>Empresa</span>
+                      {getSortIcon('company')}
+                    </button>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Fecha Emisión
+                    <button
+                      onClick={() => sortCertificates('issueDate')}
+                      className="flex items-center space-x-1 hover:text-gray-700"
+                    >
+                      <span>Fecha Emisión</span>
+                      {getSortIcon('issueDate')}
+                    </button>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Acciones
@@ -424,7 +539,7 @@ export default function AdminPanel() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {certificates.map((certificate) => (
+                {currentItems.map((certificate) => (
                   <tr key={certificate.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
@@ -481,6 +596,52 @@ export default function AdminPanel() {
               </tbody>
             </table>
           </div>
+
+          {/* Paginación */}
+          {totalPages > 1 && (
+            <div className="px-6 py-3 border-t border-gray-200 bg-gray-50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                  >
+                    Anterior
+                  </button>
+                  
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    const pageNum = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`px-3 py-1 border rounded text-sm ${
+                          currentPage === pageNum
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'border-gray-300 hover:bg-gray-100'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    )
+                  })}
+                  
+                  <button
+                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                  >
+                    Siguiente
+                  </button>
+                </div>
+                
+                <div className="text-sm text-gray-700">
+                  Página {currentPage} de {totalPages}
+                </div>
+              </div>
+            </div>
+          )}
 
           {certificates.length === 0 && (
             <div className="text-center py-12">

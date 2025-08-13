@@ -86,6 +86,12 @@ export default function HomePage() {
     }
   }
 
+  const resetForm = () => {
+  setDni('')
+  setCertificates([])
+  setError('')
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
@@ -104,7 +110,9 @@ export default function HomePage() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <button className="text-gray-600 hover:text-gray-900">
+              <button className="text-gray-600 hover:text-gray-900"
+                onClick={resetForm}
+                >
                 Consultar
               </button>
               <button 
