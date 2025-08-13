@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { writeFile, mkdir } from 'fs/promises'
+import { writeFile, mkdir, unlink } from 'fs/promises'
 import { join } from 'path'
 import { existsSync } from 'fs'
 
@@ -27,7 +27,6 @@ export async function PUT(
       )
     }
 
-    // Buscar certificado existente
     const existingCertificate = await prisma.certificate.findUnique({
       where: { id }
     })
@@ -41,7 +40,6 @@ export async function PUT(
 
     let pdfUrl = existingCertificate.pdfUrl
 
-    // Procesar nuevo archivo PDF si se proporciona
     if (pdfFile && pdfFile.size > 0) {
       if (pdfFile.type !== 'application/pdf') {
         return NextResponse.json(
@@ -57,7 +55,21 @@ export async function PUT(
         )
       }
 
-      const certificatesDir = join(process.cwd(), 'certificates')
+      // Eliminar archivo anterior si existe
+      if (existingCertificate.pdfUrl) {
+        try {
+          const oldFilename = existingCertificate.pdfUrl.split('/').pop()
+          if (oldFilename) {
+            const oldFilePath = join('/tmp', 'certificates', oldFilename)
+            await unlink(oldFilePath)
+          }
+        } catch (_error) {
+          console.warn('No se pudo eliminar el archivo anterior:', _error)
+        }
+      }
+
+      // Crear directorio temporal en Vercel
+      const certificatesDir = join('/tmp', 'certificates')
       if (!existsSync(certificatesDir)) {
         await mkdir(certificatesDir, { recursive: true })
       }
@@ -74,7 +86,6 @@ export async function PUT(
       pdfUrl = `/api/certificates/download/${filename}`
     }
 
-    // Actualizar certificado
     const updatedCertificate = await prisma.certificate.update({
       where: { id },
       data: {
@@ -118,6 +129,19 @@ export async function DELETE(
         { error: 'Certificado no encontrado' },
         { status: 404 }
       )
+    }
+
+    // Eliminar archivo PDF si existe
+    if (certificate.pdfUrl) {
+      try {
+        const filename = certificate.pdfUrl.split('/').pop()
+        if (filename) {
+          const filePath = join('/tmp', 'certificates', filename)
+          await unlink(filePath)
+        }
+      } catch (_error) {
+        console.warn('No se pudo eliminar el archivo:', _error)
+      }
     }
 
     await prisma.certificate.update({
