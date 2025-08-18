@@ -87,9 +87,9 @@ export default function HomePage() {
   }
 
   const resetForm = () => {
-  setDni('')
-  setCertificates([])
-  setError('')
+    setDni('')
+    setCertificates([])
+    setError('')
   }
 
   return (
@@ -110,16 +110,17 @@ export default function HomePage() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <button className="text-gray-600 hover:text-gray-900"
+              <button 
                 onClick={resetForm}
-                >
+                className="text-gray-600 hover:text-gray-900"
+              >
                 Consultar
               </button>
               <button 
                 onClick={() => setShowLogin(true)}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 hover:shadow-lg transform hover:scale-105 transition-all duration-200 text-sm"
               >
-                Administración
+                Admin
               </button>
             </div>
           </div>
