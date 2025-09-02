@@ -105,8 +105,8 @@ export default function HomePage() {
                 </svg>
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">SESMA CONSULTORES</h1>
-                <p className="text-sm text-gray-600">PLATAFORMA DE CONSULTA</p>
+                <h1 className="text-xl font-bold text-gray-900">Olica Consultoria e Ingenieria</h1>
+                <p className="text-sm text-gray-600">Plataforma De Cconsulta</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
